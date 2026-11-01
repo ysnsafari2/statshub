@@ -1,0 +1,34 @@
+name: API test
+
+on: workflow_dispatch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch samples
+        env:
+          KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+        run: |
+          mkdir out
+          for ep in scorers standings matches teams; do
+            code=$(curl -sS -o "out/$ep.json" -w "%{http_code}" \
+              -H "X-Auth-Token: $KEY" \
+              "https://api.football-data.org/v4/competitions/PD/$ep")
+            echo "== $ep -> HTTP $code"
+            sleep 7
+          done
+
+      - name: Show start of each file
+        run: |
+          for f in out/*.json; do
+            echo "===== $f"
+            python3 -m json.tool "$f" | head -70
+            echo
+          done
+
+      - name: Save full files
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-samples
+          path: out
